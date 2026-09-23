@@ -1,4 +1,4 @@
-# APEX Schema Normalization FactAPI
+# APEX Schema Normalization FastAPI
 
 FastAPI backend for the APEX Schema Normalization project.
 
@@ -24,13 +24,13 @@ The project currently uses:
 Clone the repository using HTTPS:
 
 ```bash
-git clone https://github.com/SaketTricon/Apex_SchemaNorm_FactAPI.git
+git clone https://github.com/SaketTricon/Apex_SchemaNorm_FastAPI.git
 ```
 
 Move into the project:
 
 ```bash
-cd Apex_SchemaNorm_FactAPI
+cd Apex_SchemaNorm_FastAPI
 ```
 
 ---
@@ -152,7 +152,7 @@ Expected response:
 ## 7. Project Structure
 
 ```text
-Apex_SchemaNorm_FactAPI/
+Apex_SchemaNorm_FastAPI/
 │
 ├── app/
 │   ├── api/
@@ -294,7 +294,7 @@ deactivate
 To start working again:
 
 ```bash
-cd Apex_SchemaNorm_FactAPI
+cd Apex_SchemaNorm_FastAPI
 source .venv/bin/activate
 ```
 
@@ -305,9 +305,9 @@ source .venv/bin/activate
 For an existing contributor, the complete setup is:
 
 ```bash
-git clone https://github.com/SaketTricon/Apex_SchemaNorm_FactAPI.git
+git clone https://github.com/SaketTricon/Apex_SchemaNorm_FastAPI.git
 
-cd Apex_SchemaNorm_FactAPI
+cd Apex_SchemaNorm_FastAPI
 
 python3.12 -m venv .venv
 
