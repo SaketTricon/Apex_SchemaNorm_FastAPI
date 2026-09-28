@@ -1,11 +1,19 @@
 from fastapi import FastAPI
 
+from app.api.routes.schema import router
+
+
 app = FastAPI(
-    title="APEX Schema Normalization API",
-    version="0.1.0",
+    title="Schema Profiling API",
 )
 
 
+app.include_router(router)
+
+
 @app.get("/health")
-def health_check():
-    return {"status": "healthy"}
+def health():
+
+    return {
+        "status": "healthy"
+    }

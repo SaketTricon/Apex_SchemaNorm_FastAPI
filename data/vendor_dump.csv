@@ -1,0 +1,6 @@
+col_a,col_b,col_c,col_d,col_e,col_f
+1001,Product A,125.50,true,2025-01-10,ABC
+1002,Product B,200.00,false,2025-02-15,DEF
+1003,Product C,350.75,true,2025-03-20,ABC
+1004,Product D,,true,2025-04-05,GHI
+1005,Product E,450.00,false,,DEF
