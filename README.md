@@ -370,27 +370,3 @@ The backend will be extended to support:
 10. Final schema recommendation
 
 These components will be added incrementally as the project develops.
-
-## CSV Statistical Profiling
-
-Generate a statistics report for the bundled vendor CSV:
-
-```bash
-python build_report.py
-```
-
-This writes `examples/vendor_customers.report.csv`, with one row per input column.
-For the additional test CSV:
-
-```bash
-python build_report.py examples/customers_test.csv --config examples/config.json
-```
-
-Run the profiling and report tests:
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-See [Statistical profiling](docs/statistical_profiling.md) for JSON output,
-configuration, metric definitions, service integration, and limitations.
