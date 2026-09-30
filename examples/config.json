@@ -1,0 +1,13 @@
+{
+  "column_types": {
+    "CUST_NO": "string",
+    "CUST_NM": "string",
+    "AGE": "number",
+    "BALANCE": "number",
+    "JOIN_DATE": "date",
+    "ST_CD": "string",
+    "PHONE": "string",
+    "UNUSED": "string"
+  },
+  "null_tokens": ["", "NULL"]
+}
