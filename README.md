@@ -4,28 +4,25 @@
 Apex_SchemaNorm_FastAPI/
 │
 ├── app/
-│   ├── __init__.py
 │   ├── main.py
 │   │
 │   ├── api/
-│   │   ├── __init__.py
 │   │   └── routes/
-│   │       ├── __init__.py
-│   │       └── schema.py
+│   │       └── profiling.py
 │   │
 │   ├── core/
-│   │   ├── __init__.py
 │   │   └── database.py
 │   │
 │   └── services/
-│       ├── __init__.py
-│       └── schema_profiler.py
+│       ├── profiling_service.py
+│       ├── sample_profiler.py
+│       ├── schema_profiler.py
+│       └── statistical_profiler.py
 │
 ├── data/
 │   └── vendor_dump.csv
 │
 └── requirements.txt
-
 
 
 FastAPI backend for the APEX Schema Normalization project.
