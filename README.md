@@ -1,5 +1,33 @@
 # APEX Schema Normalization FastAPI
 
+
+Apex_SchemaNorm_FastAPI/
+│
+├── app/
+│   ├── __init__.py
+│   ├── main.py
+│   │
+│   ├── api/
+│   │   ├── __init__.py
+│   │   └── routes/
+│   │       ├── __init__.py
+│   │       └── schema.py
+│   │
+│   ├── core/
+│   │   ├── __init__.py
+│   │   └── database.py
+│   │
+│   └── services/
+│       ├── __init__.py
+│       └── schema_profiler.py
+│
+├── data/
+│   └── vendor_dump.csv
+│
+└── requirements.txt
+
+
+
 FastAPI backend for the APEX Schema Normalization project.
 
 The application will provide APIs for processing sample/unstructured JSON data, cleaning and normalizing the data, and generating recommended target table schemas.
