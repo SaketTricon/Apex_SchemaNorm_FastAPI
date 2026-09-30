@@ -4,28 +4,25 @@
 Apex_SchemaNorm_FastAPI/
 │
 ├── app/
-│   ├── __init__.py
 │   ├── main.py
 │   │
 │   ├── api/
-│   │   ├── __init__.py
 │   │   └── routes/
-│   │       ├── __init__.py
-│   │       └── schema.py
+│   │       └── profiling.py
 │   │
 │   ├── core/
-│   │   ├── __init__.py
 │   │   └── database.py
 │   │
 │   └── services/
-│       ├── __init__.py
-│       └── schema_profiler.py
+│       ├── profiling_service.py
+│       ├── sample_profiler.py
+│       ├── schema_profiler.py
+│       └── statistical_profiler.py
 │
 ├── data/
 │   └── vendor_dump.csv
 │
 └── requirements.txt
-
 
 
 FastAPI backend for the APEX Schema Normalization project.
@@ -370,27 +367,3 @@ The backend will be extended to support:
 10. Final schema recommendation
 
 These components will be added incrementally as the project develops.
-
-## CSV Statistical Profiling
-
-Generate a statistics report for the bundled vendor CSV:
-
-```bash
-python build_report.py
-```
-
-This writes `examples/vendor_customers.report.csv`, with one row per input column.
-For the additional test CSV:
-
-```bash
-python build_report.py examples/customers_test.csv --config examples/config.json
-```
-
-Run the profiling and report tests:
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-See [Statistical profiling](docs/statistical_profiling.md) for JSON output,
-configuration, metric definitions, service integration, and limitations.
