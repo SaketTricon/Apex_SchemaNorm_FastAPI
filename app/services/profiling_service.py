@@ -1,38 +1,42 @@
 import csv
-import random
-from pathlib import Path
+import io
 
-from app.services.sample_profiler import profile_sample
+from app.services.data_quality_profiler import (
+    build_data_quality_summary,
+)
+from app.services.relationship_profiler import (
+    find_candidate_primary_keys,
+    find_foreign_keys,
+)
+from app.services.sample_profiler import (
+    profile_column_patterns,
+)
 from app.services.schema_profiler import (
     profile_csv_schema,
-    profile_postgres_schema,
 )
 from app.services.statistical_profiler import (
     profile_statistics,
 )
 
 
-CSV_PATH = Path("data/vendor_dump.csv")
+def read_csv(
+    content: bytes,
+) -> list[dict]:
 
-SAMPLE_SIZE = 100
+    text = content.decode(
+        "utf-8-sig"
+    )
 
+    reader = csv.DictReader(
+        io.StringIO(text)
+    )
 
-def read_csv():
+    if not reader.fieldnames:
+        raise ValueError(
+            "CSV does not contain headers."
+        )
 
-    with CSV_PATH.open(
-        "r",
-        encoding="utf-8-sig",
-        newline="",
-    ) as file:
-
-        reader = csv.DictReader(file)
-
-        if not reader.fieldnames:
-            raise ValueError(
-                "CSV does not contain headers."
-            )
-
-        rows = list(reader)
+    rows = list(reader)
 
     if not rows:
         raise ValueError(
@@ -42,130 +46,262 @@ def read_csv():
     return rows
 
 
-def sample_rows(
-    rows: list[dict],
-    sample_size: int,
-) -> list[dict]:
-
-    if len(rows) <= sample_size:
-        return rows
-
-    return random.sample(
-        rows,
-        sample_size,
-    )
-
-
-def profile_csv() -> dict:
-
-    rows = read_csv()
-
-    columns = list(rows[0].keys())
-
-    sample = sample_rows(
-        rows,
-        SAMPLE_SIZE,
-    )
-
-    schema = profile_csv_schema(
-        sample,
-        columns,
-    )
-
-    sample_profile = profile_sample(
-        sample,
-        columns,
-    )
-
-    statistics = profile_statistics(
-        rows,
-        columns,
-        schema["columns"],
-    )
-
-    return {
-        "source": {
-            "type": "csv",
-            "file": CSV_PATH.name,
-            "table": "vendor_dump",
-        },
-        "sample_profiling": sample_profile,
-        "schema_profiling": schema,
-        "statistical_profiling": statistics,
-    }
-
-
-def profile_postgres(
-    connection,
-    schema_name: str,
-    table_name: str,
+def profile_dataset(
+    uploaded_files: list[dict],
 ) -> dict:
 
-    schema = profile_postgres_schema(
-        connection,
-        schema_name,
-        table_name,
-    )
+    file_results = []
 
-    columns = [
-        column["name"]
-        for column in schema["columns"]
-    ]
+    total_rows = 0
+    total_columns = 0
 
-    with connection.cursor() as cursor:
+    for uploaded_file in uploaded_files:
 
-        cursor.execute(
-            f'''
-            SELECT *
-            FROM "{schema_name}"."{table_name}"
-            '''
-        )
-
-        database_rows = cursor.fetchall()
-
-        column_names = [
-            description.name
-            for description in cursor.description
+        filename = uploaded_file[
+            "filename"
         ]
 
-    rows = [
-        dict(
-            zip(
-                column_names,
-                row,
+        content = uploaded_file[
+            "content"
+        ]
+
+        rows = read_csv(content)
+
+        columns = list(
+            rows[0].keys()
+        )
+
+        schema = profile_csv_schema(
+            rows,
+            columns,
+        )
+
+        statistics = profile_statistics(
+            rows,
+            schema["columns"],
+        )
+
+        candidate_primary_keys = (
+            find_candidate_primary_keys(
+                rows,
+                schema["columns"],
             )
         )
-        for row in database_rows
-    ]
 
-    if not rows:
-        raise ValueError(
-            f"Table '{schema_name}.{table_name}' is empty."
+        column_profiles = []
+
+        for schema_column in schema[
+            "columns"
+        ]:
+
+            column_name = schema_column[
+                "column_name"
+            ]
+
+            column_statistics = next(
+                item["statistics"]
+                for item in statistics
+                if item["column_name"]
+                == column_name
+            )
+
+            pattern_data = (
+                profile_column_patterns(
+                    rows,
+                    column_name,
+                )
+            )
+
+            key_analysis = next(
+                (
+                    candidate
+                    for candidate
+                    in candidate_primary_keys
+                    if candidate["column"]
+                    == column_name
+                ),
+                None,
+            )
+
+            if key_analysis is None:
+                key_analysis = {
+                    "candidate_primary_key": False,
+                    "uniqueness_percentage": (
+                        column_statistics[
+                            "distinct_percentage"
+                        ]
+                    ),
+                }
+
+            column_profiles.append(
+                {
+                    "column_name": column_name,
+                    "position": schema_column[
+                        "position"
+                    ],
+                    "inferred_data_type": (
+                        schema_column[
+                            "inferred_data_type"
+                        ]
+                    ),
+                    "semantic_type": (
+                        schema_column[
+                            "semantic_type"
+                        ]
+                    ),
+                    "nullable": schema_column[
+                        "nullable"
+                    ],
+                    "statistics": (
+                        column_statistics
+                    ),
+                    "patterns": (
+                        pattern_data[
+                            "patterns"
+                        ]
+                    ),
+                    "sample_values": (
+                        pattern_data[
+                            "sample_values"
+                        ]
+                    ),
+                    "key_analysis": (
+                        key_analysis
+                    ),
+                }
+            )
+
+        table_level_analysis = {
+            "candidate_primary_keys": [
+                candidate["column"]
+                for candidate
+                in candidate_primary_keys
+            ],
+            "candidate_business_keys": [],
+            "possible_duplicate_columns": [],
+            "possible_audit_columns": [
+                column["column_name"]
+                for column in schema[
+                    "columns"
+                ]
+                if column["semantic_type"]
+                == "timestamp"
+            ],
+            "possible_pii_columns": [
+                column["column_name"]
+                for column in schema[
+                    "columns"
+                ]
+                if column["semantic_type"]
+                in {
+                    "email",
+                    "phone_number",
+                    "person_name",
+                    "address",
+                }
+            ],
+        }
+
+        file_results.append(
+            {
+                "file_name": filename,
+                "table_name": filename.rsplit(
+                    ".",
+                    1,
+                )[0],
+                "rows": rows,
+                "schema": schema,
+                "candidate_primary_keys": (
+                    candidate_primary_keys
+                ),
+                "column_profiles": (
+                    column_profiles
+                ),
+                "file_statistics": {
+                    "row_count": len(rows),
+                    "column_count": len(
+                        columns
+                    ),
+                    "file_size_bytes": len(
+                        content
+                    ),
+                },
+                "table_level_analysis": (
+                    table_level_analysis
+                ),
+            }
         )
 
-    sample = sample_rows(
-        rows,
-        SAMPLE_SIZE,
+        total_rows += len(rows)
+        total_columns += len(columns)
+
+    cross_file_relationships = (
+        find_foreign_keys(
+            file_results
+        )
     )
 
-    sample_profile = profile_sample(
-        sample,
-        columns,
+    data_quality_summary = (
+        build_data_quality_summary(
+            file_results
+        )
     )
 
-    statistics = profile_statistics(
-        rows,
-        columns,
-        schema["columns"],
-    )
+    final_files = []
+
+    for file_data in file_results:
+
+        final_files.append(
+            {
+                "file_name": file_data[
+                    "file_name"
+                ],
+                "table_name": file_data[
+                    "table_name"
+                ],
+                "file_statistics": file_data[
+                    "file_statistics"
+                ],
+                "schema": {
+                    "columns": file_data[
+                        "column_profiles"
+                    ]
+                },
+                "table_level_analysis": (
+                    file_data[
+                        "table_level_analysis"
+                    ]
+                ),
+            }
+        )
 
     return {
-        "source": {
-            "type": "postgresql",
-            "schema": schema_name,
-            "table": table_name,
+        "dataset_summary": {
+            "file_count": len(
+                uploaded_files
+            ),
+            "total_rows": total_rows,
+            "total_columns": total_columns,
+            "files": [
+                {
+                    "file_name": file[
+                        "file_name"
+                    ],
+                    "row_count": file[
+                        "file_statistics"
+                    ]["row_count"],
+                    "column_count": file[
+                        "file_statistics"
+                    ]["column_count"],
+                }
+                for file in file_results
+            ],
         },
-        "sample_profiling": sample_profile,
-        "schema_profiling": schema,
-        "statistical_profiling": statistics,
+        "files": final_files,
+        "cross_file_relationships": (
+            cross_file_relationships
+        ),
+        "data_quality_summary": (
+            data_quality_summary
+        ),
     }
