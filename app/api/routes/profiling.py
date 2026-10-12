@@ -1,8 +1,10 @@
+
 from typing import List
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.services.profiling_service import profile_dataset
+from app.services.query_generator import generate_search_query
 
 
 router = APIRouter(
@@ -12,20 +14,18 @@ router = APIRouter(
 
 
 @router.post("/profile")
-async def profile_data(
-    files: List[UploadFile] = File(...)
-):
+async def profile_data(files: List[UploadFile] = File(...)):
     if not files:
         raise HTTPException(
             status_code=400,
-            detail="At least one CSV file must be uploaded.",
+            detail="At least one CSV file is required.",
         )
 
     for file in files:
         if not file.filename:
             raise HTTPException(
                 status_code=400,
-                detail="Uploaded file must have a filename.",
+                detail="Every uploaded file must have a filename.",
             )
 
         if not file.filename.lower().endswith(".csv"):
@@ -47,18 +47,29 @@ async def profile_data(
                 }
             )
 
-        profile_dataset(uploaded_files)
-        return {"status": "success"}
+        # Step 1: Run the existing profiling implementation.
+        profiling_response = profile_dataset(uploaded_files)
+
+        # Step 2: Generate RAG search-query JSON from the profile.
+        search_query_response = generate_search_query(profiling_response)
+
+        # Step 3: Return the generated JSON as the API response.
+        return search_query_response
 
     except ValueError as error:
         raise HTTPException(
             status_code=400,
             detail=str(error),
-        )
+        ) from error
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=502,
+            detail=str(error),
+        ) from error
 
     except Exception as error:
         raise HTTPException(
             status_code=500,
-            detail=str(error),
-        )
-    
+            detail="Failed to profile the uploaded data or generate queries.",
+        ) from error
