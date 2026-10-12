@@ -127,6 +127,8 @@ The application will start at:
 http://127.0.0.1:8000
 ```
 
+Open that URL to use the CSV upload UI. Select or drop one or more CSV files and choose **Profile CSVs**. The UI sends all selected files in one multipart request to `POST /api/v1/profile`. The API profiles the files and returns a success status without returning the profiling data.
+
 ---
 
 ## 5. API Documentation

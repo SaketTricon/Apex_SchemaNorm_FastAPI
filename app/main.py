@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from app.api.routes.profiling import router as profiling_router
 
@@ -14,5 +16,12 @@ app.include_router(profiling_router)
 @app.get("/health")
 def health():
     return {
-        "status": "healthy"
-    }
+        "status": "healthy"}
+
+
+app.mount(
+    "/",
+    StaticFiles(directory=Path(__file__).resolve().parent.parent / "ui", html=True),
+    name="ui",
+)
+    
