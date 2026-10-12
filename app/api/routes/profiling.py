@@ -47,7 +47,8 @@ async def profile_data(
                 }
             )
 
-        return profile_dataset(uploaded_files)
+        profile_dataset(uploaded_files)
+        return {"status": "success"}
 
     except ValueError as error:
         raise HTTPException(
