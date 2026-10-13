@@ -1,5 +1,6 @@
 
 from typing import List
+import traceback
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
@@ -47,13 +48,13 @@ async def profile_data(files: List[UploadFile] = File(...)):
                 }
             )
 
-        # Step 1: Run the existing profiling implementation.
+        # Step 1: Profile the uploaded CSV files.
         profiling_response = profile_dataset(uploaded_files)
 
-        # Step 2: Generate RAG search-query JSON from the profile.
+        # Step 2: Generate RAG search-query JSON.
         search_query_response = generate_search_query(profiling_response)
 
-        # Step 3: Return the generated JSON as the API response.
+        # Step 3: Return the generated JSON.
         return search_query_response
 
     except ValueError as error:
@@ -69,7 +70,9 @@ async def profile_data(files: List[UploadFile] = File(...)):
         ) from error
 
     except Exception as error:
+        traceback.print_exc()
+
         raise HTTPException(
             status_code=500,
-            detail="Failed to profile the uploaded data or generate queries.",
+            detail=str(error),
         ) from error

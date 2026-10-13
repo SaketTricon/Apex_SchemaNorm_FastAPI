@@ -18,6 +18,39 @@ PROMPT_PATH = (
 )
 
 
+def compact_profile(data):
+    """Remove raw samples and limit pattern examples to reduce token usage."""
+
+    if isinstance(data, dict):
+        result = {}
+
+        for key, value in data.items():
+            key_lower = key.lower()
+
+            # Remove raw sample values to reduce size and protect PII.
+            if key_lower in {"sample_values", "samples"}:
+                continue
+
+            # Keep at most three pattern examples.
+            if key_lower in {"patterns", "pattern_examples"}:
+                if isinstance(value, list):
+                    result[key] = value[:3]
+                elif isinstance(value, dict):
+                    result[key] = compact_profile(value)
+                else:
+                    result[key] = value
+                continue
+
+            result[key] = compact_profile(value)
+
+        return result
+
+    if isinstance(data, list):
+        return [compact_profile(item) for item in data]
+
+    return data
+
+
 def generate_search_query(profiling_response: dict) -> dict:
     api_key = os.getenv("GROQ_API_KEY")
 
@@ -27,17 +60,18 @@ def generate_search_query(profiling_response: dict) -> dict:
     if not PROMPT_PATH.is_file():
         raise RuntimeError(f"Prompt file not found: {PROMPT_PATH}")
 
-    # Load the fixed prompt instructions.
+    # Load fixed instructions.
     prompt_template = PROMPT_PATH.read_text(encoding="utf-8")
 
-    # Serialize the current profiling output dynamically.
+    # Reduce the profiling payload before sending it to Groq.
+    compact_response = compact_profile(profiling_response)
+
     profile_json = json.dumps(
-        profiling_response,
-        indent=2,
+        compact_response,
         ensure_ascii=False,
+        separators=(",", ":"),
     )
 
-    # Combine the fixed instructions with this request's profiling JSON.
     prompt = (
         f"{prompt_template}\n\n"
         f"VENDOR PROFILING JSON:\n{profile_json}\n"
