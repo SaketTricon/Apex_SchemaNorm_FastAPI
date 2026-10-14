@@ -3,6 +3,7 @@ from typing import List
 import traceback
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import PlainTextResponse
 
 from app.services.profiling_service import profile_dataset
 from app.services.query_generator import generate_search_query
@@ -14,7 +15,10 @@ router = APIRouter(
 )
 
 
-@router.post("/profile")
+@router.post(
+    "/profile",
+    response_class=PlainTextResponse,
+)
 async def profile_data(files: List[UploadFile] = File(...)):
     if not files:
         raise HTTPException(
@@ -51,11 +55,14 @@ async def profile_data(files: List[UploadFile] = File(...)):
         # Step 1: Profile the uploaded CSV files.
         profiling_response = profile_dataset(uploaded_files)
 
-        # Step 2: Generate RAG search-query JSON.
-        search_query_response = generate_search_query(profiling_response)
+        # Step 2: Convert the profiling JSON into descriptive plain text.
+        text_response = generate_search_query(profiling_response)
 
-        # Step 3: Return the generated JSON.
-        return search_query_response
+        # Step 3: Return plain text instead of JSON.
+        return PlainTextResponse(
+            content=text_response,
+            media_type="text/plain",
+        )
 
     except ValueError as error:
         raise HTTPException(

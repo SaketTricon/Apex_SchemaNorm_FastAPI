@@ -3,6 +3,6 @@ uvicorn
 pydantic
 psycopg[binary]
 python-multipart
-groq
+groq==0.31.0
 python-dotenv
 SQLAlchemy
