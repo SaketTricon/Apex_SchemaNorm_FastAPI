@@ -34,7 +34,7 @@ def build_index(
     return index
 
 
-def load_index(index_file: str | Path) -> dict[str, Any]:
+def  load_index(index_file: str | Path) -> dict[str, Any]:
     with Path(index_file).open("rb") as source:
         index = pickle.load(source)
 
