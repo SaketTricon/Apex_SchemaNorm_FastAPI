@@ -5,6 +5,11 @@ import numpy as np
 from rag.embeddings import create_embeddings
 
 
+def format_rag_context(results: list[dict[str, Any]]) -> str:
+    """Combine retrieved chunks into paragraph-separated context for an LLM."""
+    return "\n\n".join(result["text"] for result in results)
+
+
 def vector_search(
     query: str,
     index: dict[str, Any],
