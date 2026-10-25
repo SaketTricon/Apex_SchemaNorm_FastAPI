@@ -1,3 +1,4 @@
+
 from functools import lru_cache
 from typing import Sequence
 
@@ -10,17 +11,29 @@ MODEL_NAME = "all-MiniLM-L6-v2"
 
 @lru_cache(maxsize=1)
 def _get_model() -> SentenceTransformer:
-	return SentenceTransformer(MODEL_NAME)
+    print(f"Loading embedding model: {MODEL_NAME}")
+    model = SentenceTransformer(MODEL_NAME)
+    print("Embedding model loaded.")
+    return model
 
 
-def create_embeddings(texts: Sequence[str]) -> NDArray[np.float32]:
-	if not texts:
-		raise ValueError("At least one text is required to create embeddings")
+def load_embedding_model() -> SentenceTransformer:
+    """Preload the model during FastAPI startup."""
+    return _get_model()
 
-	embeddings = _get_model().encode(
-		list(texts),
-		normalize_embeddings=True,
-		convert_to_numpy=True,
-		show_progress_bar=False,
-	)
-	return np.asarray(embeddings, dtype=np.float32)
+
+def create_embeddings(
+    texts: Sequence[str],
+) -> NDArray[np.float32]:
+
+    if not texts:
+        raise ValueError("At least one text is required.")
+
+    embeddings = _get_model().encode(
+        list(texts),
+        normalize_embeddings=True,
+        convert_to_numpy=True,
+        show_progress_bar=False,
+    )
+
+    return np.asarray(embeddings, dtype=np.float32)
