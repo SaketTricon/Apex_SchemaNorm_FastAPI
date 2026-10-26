@@ -7,20 +7,20 @@ from dotenv import load_dotenv
 from groq import Groq
 
 
-ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
-load_dotenv(ENV_PATH)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-MODEL_NAME = "openai/gpt-oss-120b"
-
-PROMPT_DIR = Path(__file__).resolve().parents[2] / "prompts"
+ENV_PATH = PROJECT_ROOT / ".env"
+PROMPT_DIR = PROJECT_ROOT / "prompts"
 
 QUERY_PROMPT_PATH = PROMPT_DIR / "rag_query_generation.txt"
 FINAL_PROMPT_PATH = PROMPT_DIR / "final_prompt.txt"
 
+MODEL_NAME = "openai/gpt-oss-120b"
+
+load_dotenv(ENV_PATH)
+
 
 def get_groq_client(api_key_env: str) -> Groq:
-    """Create a Groq client using the specified environment variable."""
-
     api_key = os.getenv(api_key_env)
 
     if not api_key:
@@ -32,8 +32,6 @@ def get_groq_client(api_key_env: str) -> Groq:
 
 
 def compact_profile(data):
-    """Remove raw sample values and reduce unnecessary payload size."""
-
     if isinstance(data, dict):
         result = {}
 
@@ -63,23 +61,35 @@ def compact_profile(data):
     return data
 
 
-def generate_search_query(profiling_response: dict) -> str:
-    """Generate BM25 and vector search queries from profiling JSON."""
+def prepare_profile_json(profiling_response) -> str:
+    """
+    Accept either a JSON string or a Python dictionary.
+    """
 
+    if isinstance(profiling_response, str):
+        # Validate that the string contains valid JSON.
+        json.loads(profiling_response)
+        return profiling_response
+
+    return json.dumps(
+        compact_profile(profiling_response),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+
+
+def generate_search_query(profiling_response) -> str:
     if not QUERY_PROMPT_PATH.is_file():
         raise RuntimeError(
             f"RAG query prompt not found: {QUERY_PROMPT_PATH}"
         )
 
+    profile_json = prepare_profile_json(profiling_response)
+
     prompt_template = QUERY_PROMPT_PATH.read_text(
         encoding="utf-8"
     ).strip()
-
-    profile_json = json.dumps(
-        compact_profile(profiling_response),
-        ensure_ascii=False,
-        indent=2,
-    )
 
     prompt = prompt_template.replace(
         "{{PROFILE_JSON}}",
@@ -90,9 +100,12 @@ def generate_search_query(profiling_response: dict) -> str:
 
     response = client.chat.completions.create(
         model=MODEL_NAME,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
         temperature=0.1,
     )
+    print("first is done")
 
     content = (
         response.choices[0].message.content or ""
@@ -105,51 +118,44 @@ def generate_search_query(profiling_response: dict) -> str:
 
     return content
 
+
 def generate_final_report(
     profiling_response: dict,
     rag_context: str,
 ) -> str:
-    """Second LLM call: generate the final normalized schema JSON."""
 
     if not FINAL_PROMPT_PATH.is_file():
-        raise RuntimeError(f"Final prompt not found: {FINAL_PROMPT_PATH}")
+        raise RuntimeError(
+            f"Final prompt not found: {FINAL_PROMPT_PATH}"
+        )
 
     if not rag_context.strip():
         raise ValueError("RAG context is empty.")
 
-    # Load final prompt template
+    profile_json = prepare_profile_json(profiling_response)
+
     prompt_template = FINAL_PROMPT_PATH.read_text(
         encoding="utf-8"
     ).strip()
 
-    # Prepare profile JSON
-    profile_json = json.dumps(
-        compact_profile(profiling_response),
-        ensure_ascii=False,
-        indent=2,
-    )
-
-    # Inject dynamic inputs into the prompt
     final_prompt = (
         prompt_template
         .replace("{{PROFILE_JSON}}", profile_json)
         .replace("{{RAG_CONTEXT}}", rag_context)
     )
 
-    # Second LLM call
     client = get_groq_client("GROQ_FINAL_API_KEY")
 
     response = client.chat.completions.create(
         model=MODEL_NAME,
         messages=[
-            {
-                "role": "user",
-                "content": final_prompt,
-            }
+            {"role": "user", "content": final_prompt}
         ],
         temperature=0.1,
+        response_format={"type": "json_object"},
     )
 
+    print("second id done")
     content = (
         response.choices[0].message.content or ""
     ).strip()
@@ -158,5 +164,13 @@ def generate_final_report(
         raise RuntimeError(
             "The final report generation returned an empty response."
         )
+
+    # Validate the returned JSON.
+    try:
+        json.loads(content)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            "The final report model returned invalid JSON."
+        ) from exc
 
     return content

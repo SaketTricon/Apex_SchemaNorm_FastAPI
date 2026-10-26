@@ -7,6 +7,27 @@ Analyze vendor PROFILE_JSON using relevant RAG_CONTEXT to recommend a standardiz
 
 The source schema and business domain are unknown and may vary across requests.
 
+PROFILE_JSON FORMAT
+
+PROFILE_JSON uses losslessly abbreviated field names:
+
+cn=column_name, dt=inferred_data_type,
+sem=semantic_type, nb=nullable,
+st=statistics, sv=sample_values,
+nc=null_count, np=null_percentage,
+dc=distinct_count, dp=distinct_percentage,
+ka=key_analysis, cpk=candidate_primary_key,
+pt=patterns.
+
+All other keys retain their original meanings.
+
+Interpret abbreviated keys as their original fields.
+Do not confuse abbreviated metadata keys with source column names.
+Preserve actual source table and column names in all mappings.
+Apply all analysis rules to the optimized profile exactly as if it were uncompressed.
+
+ 
+
 SOURCE RULES
 
 - PROFILE_JSON is authoritative for source tables, columns, types, statistics, candidate keys, relationships, and data quality findings.

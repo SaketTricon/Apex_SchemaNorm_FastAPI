@@ -5,6 +5,25 @@ Analyze vendor data profiling JSON and generate focused search queries for hybri
 
 The source schema and business domain are unknown. Generate queries dynamically using only the profiling evidence.
 
+PROFILE_JSON FORMAT:
+PROFILE_JSON uses losslessly abbreviated metadata keys:
+
+cn=column_name, dt=inferred_data_type,
+sem=semantic_type, nb=nullable,
+st=statistics, sv=sample_values,
+nc=null_count, np=null_percentage,
+dc=distinct_count, dp=distinct_percentage,
+ka=key_analysis, cpk=candidate_primary_key,
+pt=patterns.
+
+All other keys retain their original meanings.
+
+Interpret abbreviated keys as their original metadata fields.
+Preserve actual source table and column names in search queries.
+Do not treat abbreviated metadata keys as source identifiers.
+Use profiling statistics, key analysis, and detected patterns when relevant.
+
+
 KNOWLEDGE BASE:
 Standard schemas, canonical entities, column mappings, naming conventions, business glossaries, normalization rules, PK/FK patterns, transformation rules, data types, historical mappings, and data quality rules.
 

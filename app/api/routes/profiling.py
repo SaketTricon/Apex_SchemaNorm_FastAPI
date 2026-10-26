@@ -6,12 +6,17 @@ from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import PlainTextResponse
 
 from app.services.profiling_service import profile_dataset
+from app.services.profile_optimizer import optimize_profile_json
+
 from app.services.query_generator import (
     generate_search_query,
     generate_final_report,
 )
 
-from rag.vector_search import vector_search
+from rag.hybrid_search import (
+    parse_search_queries,
+    hybrid_search,
+)
 
 
 router = APIRouter(
@@ -20,15 +25,11 @@ router = APIRouter(
 )
 
 
-@router.post(
-    "/profile",
-    response_class=PlainTextResponse,
-)
+@router.post("/profile", response_class=PlainTextResponse)
 async def profile_data(
     request: Request,
     files: List[UploadFile] = File(...),
 ):
-
     if not files:
         raise HTTPException(
             status_code=400,
@@ -36,7 +37,6 @@ async def profile_data(
         )
 
     for file in files:
-
         if not file.filename:
             raise HTTPException(
                 status_code=400,
@@ -50,10 +50,7 @@ async def profile_data(
             )
 
     try:
-        # --------------------------------------------------
-        # STEP 1: Generate profiling JSON
-        # --------------------------------------------------
-
+        # STEP 1: Profile uploaded files
         print("\nSTEP 1: Profiling uploaded CSV files...")
 
         uploaded_files = []
@@ -61,76 +58,106 @@ async def profile_data(
         for file in files:
             content = await file.read()
 
-            uploaded_files.append(
-                {
-                    "filename": file.filename,
-                    "content": content,
-                }
-            )
+            uploaded_files.append({
+                "filename": file.filename,
+                "content": content,
+            })
 
         profiling_response = profile_dataset(uploaded_files)
 
         print("Profiling completed successfully.")
 
-        # --------------------------------------------------
-        # STEP 2: First LLM call - Generate RAG query
-        # --------------------------------------------------
+        # STEP 2: Optimize profiling JSON
+        print("\nSTEP 2: Optimizing profiling JSON...")
 
-        print("\nSTEP 2: Generating RAG search query...")
+        optimized_profile = optimize_profile_json(
+            profiling_response
+        )
 
-        rag_query = generate_search_query(profiling_response)
+        print("Profile JSON optimized successfully.")
+        print(
+            f"Original profile size: "
+            f"{len(str(profiling_response))} characters"
+        )
+        print(
+            f"Optimized profile size: "
+            f"{len(optimized_profile)} characters"
+        )
 
-        # print("\nGenerated RAG query:")
-        # print(rag_query)
+        # STEP 3: Generate BM25 and vector queries
+        print("\nSTEP 3: Generating hybrid search queries...")
 
-        # --------------------------------------------------
-        # STEP 3: Vector search using preloaded index
-        # --------------------------------------------------
+        generated_queries = generate_search_query(
+            optimized_profile
+        )
 
-        print("\nSTEP 3: Performing vector search...")
+        # print("\nGenerated search queries:")
+        # print(generated_queries)
+
+        # Parse the LLM response
+        search_queries = parse_search_queries(
+            generated_queries
+        )
+
+        # print("\nParsed keyword queries:")
+        # print(search_queries["keyword"])
+
+        # print("\nParsed vector queries:")
+        # print(search_queries["vector"])
+
+        # STEP 4: Perform hybrid search
+        print("\nSTEP 4: Performing hybrid retrieval...")
 
         rag_index = request.app.state.rag_index
+        bm25_index = request.app.state.bm25_index
 
-        rag_results = vector_search(
-            query=rag_query,
+        rag_results = hybrid_search(
+            queries=search_queries,
             index=rag_index,
+            bm25_index=bm25_index,
             top_k=5,
         )
 
         if not rag_results:
             raise RuntimeError(
-                "Vector search did not return any relevant knowledge."
+                "Hybrid search did not return any relevant knowledge."
             )
 
-        # print(f"Retrieved {len(rag_results)} knowledge chunks.")
+        print(f"\nRetrieved {len(rag_results)} knowledge chunks.")
 
-        # Build context with source information and content.
+        # Prepare context for final LLM
         rag_context = "\n\n".join(
             (
                 f"Source: {result['source']}\n"
-                f"Similarity score: {result['score']:.4f}\n"
+                f"Retrieval methods: {', '.join(result['retrieval_methods'])}\n"
+                f"RRF score: {result['rrf_score']:.6f}\n"
                 f"Content:\n{result['text']}"
             )
             for result in rag_results
         )
 
-        # Print retrieved results for debugging.
+        # # Log retrieval results
         # print("\n" + "=" * 70)
-        # print("RETRIEVED RAG CONTEXT")
+        # print("HYBRID SEARCH RESULTS")
         # print("=" * 70)
 
         # for position, result in enumerate(rag_results, start=1):
         #     print(f"\nResult {position}")
         #     print(f"Source: {result['source']}")
-        #     print(f"Score: {result['score']:.4f}")
+        #     print(f"Methods: {result['retrieval_methods']}")
+        #     print(f"RRF score: {result['rrf_score']:.6f}")
+
+        #     if "bm25_score" in result:
+        #         print(f"BM25 score: {result['bm25_score']:.4f}")
+
+        #     if "vector_score" in result:
+        #         print(f"Vector score: {result['vector_score']:.4f}")
+
         #     print("-" * 70)
         #     print(result["text"])
 
-        # --------------------------------------------------
-        # STEP 4: Second LLM call - Generate final report
-        # --------------------------------------------------
-
-        print("\nSTEP 4: Generating final normalization report...")
+        # STEP 5: Generate final normalization report
+        print("\nSTEP 5: Generating final normalization report...")
 
         final_response = generate_final_report(
             profiling_response=profiling_response,
@@ -139,13 +166,9 @@ async def profile_data(
 
         print("Final report generated successfully.")
 
-        # --------------------------------------------------
-        # STEP 5: Return final response to frontend
-        # --------------------------------------------------
-
         return PlainTextResponse(
             content=final_response,
-            media_type="text/plain",
+            media_type="application/json",
         )
 
     except ValueError as error:

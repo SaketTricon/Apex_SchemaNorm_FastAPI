@@ -9,3 +9,4 @@ pandas==2.3.2
 python-dotenv
 SQLAlchemy
 sentence-transformers==6.1.0
+rank-bm25

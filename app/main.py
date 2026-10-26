@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.routes.profiling import router as profiling_router
 from rag.embeddings import load_embedding_model
 from rag.index import load_index
+from rag.hybrid_search import build_bm25_index
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -39,6 +40,9 @@ async def lifespan(app: FastAPI):
     #     f"Knowledge index loaded: "
     #     f"{len(app.state.rag_index['chunks'])} chunks."
     # )
+    app.state.bm25_index = build_bm25_index(
+        app.state.rag_index
+    )
 
     print("RAG initialization completed.\n")
 

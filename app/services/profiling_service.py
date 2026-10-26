@@ -1,5 +1,6 @@
 import csv
 import io
+import json
 
 from app.services.data_quality_profiler import (
     build_data_quality_summary,
