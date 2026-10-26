@@ -64,10 +64,7 @@ def compact_profile(data):
 
 
 def generate_search_query(profiling_response: dict) -> str:
-    """
-    First LLM call:
-    Convert profiling JSON into a descriptive RAG retrieval query.
-    """
+    """Generate BM25 and vector search queries from profiling JSON."""
 
     if not QUERY_PROMPT_PATH.is_file():
         raise RuntimeError(
@@ -81,22 +78,20 @@ def generate_search_query(profiling_response: dict) -> str:
     profile_json = json.dumps(
         compact_profile(profiling_response),
         ensure_ascii=False,
-        separators=(",", ":"),
+        indent=2,
     )
 
-    prompt = f"{prompt_template}\n\n{profile_json}"
+    prompt = prompt_template.replace(
+        "{{PROFILE_JSON}}",
+        profile_json,
+    )
 
     client = get_groq_client("GROQ_QUERY_API_KEY")
 
     response = client.chat.completions.create(
         model=MODEL_NAME,
-        messages=[
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ],
-        temperature=0.2,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1,
     )
 
     content = (
@@ -109,7 +104,6 @@ def generate_search_query(profiling_response: dict) -> str:
         )
 
     return content
-
 
 def generate_final_report(
     profiling_response: dict,
