@@ -1,9 +1,10 @@
 
+import json
 import traceback
 from typing import List
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse
 
 from app.services.profiling_service import profile_dataset
 from app.services.profile_optimizer import optimize_profile_json
@@ -25,7 +26,10 @@ router = APIRouter(
 )
 
 
-@router.post("/profile", response_class=PlainTextResponse)
+@router.post(
+    "/profile",
+    response_class=JSONResponse,
+)
 async def profile_data(
     request: Request,
     files: List[UploadFile] = File(...),
@@ -164,12 +168,26 @@ async def profile_data(
             rag_context=rag_context,
         )
 
+        try:
+            analysis = json.loads(final_response)
+        except json.JSONDecodeError as error:
+            raise RuntimeError(
+                "The final report was not valid JSON. Please retry the analysis."
+            ) from error
+
+        required_sections = {"tables", "mappings", "findings"}
+        if (
+            not isinstance(analysis, dict)
+            or set(analysis) != required_sections
+            or any(not isinstance(analysis[section], list) for section in required_sections)
+        ):
+            raise RuntimeError(
+                "The final report must contain tables, mappings, and findings arrays."
+            )
+
         print("Final report generated successfully.")
 
-        return PlainTextResponse(
-            content=final_response,
-            media_type="application/json",
-        )
+        return JSONResponse(content=analysis)
 
     except ValueError as error:
         raise HTTPException(
