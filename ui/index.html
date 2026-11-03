@@ -3,55 +3,83 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#f3f5ef">
-    <title>APEX | CSV Profiler</title>
+    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#f7f9fc">
+    <title>SchemaNorm | New Analysis</title>
     <link rel="stylesheet" href="/styles.css">
     <script src="/app.js" defer></script>
   </head>
   <body>
-    <div class="page-shell">
-      <header class="topbar">
-        <a class="wordmark" href="/" aria-label="APEX home">
-          <span class="wordmark-mark" aria-hidden="true">A</span>
-          <span>APEX <span class="wordmark-divider">/</span> Schema tools</span>
-        </a>
-        <span class="service-label"><span class="service-dot"></span> CSV profiler</span>
-      </header>
+    <svg class="icon-library" aria-hidden="true">
+      <symbol id="icon-layers" viewBox="0 0 24 24">
+        <path d="m12 2 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 17l9 5 9-5"></path>
+      </symbol>
+      <symbol id="icon-upload" viewBox="0 0 24 24">
+        <path d="M12 16V3m-5 5 5-5 5 5M4 16v4h16v-4"></path>
+      </symbol>
+      <symbol id="icon-file" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"></path>
+        <path d="M14 2v6h6M8 13h8M8 17h8"></path>
+      </symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24">
+        <path d="M5 12h14m-6-6 6 6-6 6"></path>
+      </symbol>
+      <symbol id="icon-remove" viewBox="0 0 24 24">
+        <path d="M18 6 6 18M6 6l12 12"></path>
+      </symbol>
+    </svg>
 
-      <main>
-        <section class="intro" aria-labelledby="page-title">
-          <p class="eyebrow">DATA WORKSPACE <span>01</span></p>
-          <h1 id="page-title">Start with your<br><span>source files.</span></h1>
-          <p class="intro-copy">Choose CSV files to prepare a profiling batch.</p>
-        </section>
+    <header class="header">
+      <a class="identity" href="/" aria-label="SchemaNorm home">
+        <span class="logo">
+          <svg class="icon"><use href="#icon-layers"></use></svg>
+        </span>
+        <span>SchemaNorm</span>
+      </a>
+      <span class="header-note">Data migration analyzer</span>
+    </header>
 
-        <section class="upload-panel" aria-label="Upload CSV files">
-          <label class="drop-zone" id="dropZone" for="csvFiles">
-            <input id="csvFiles" type="file" accept=".csv,text/csv" multiple>
-            <span class="upload-symbol" aria-hidden="true">+</span>
-            <span class="drop-title">Drop CSV files here</span>
-            <span class="drop-caption">or <span class="browse-link">browse files</span></span>
-            <span class="file-limit">CSV format · up to 10 MiB per file</span>
-          </label>
+    <main class="landing-main">
+      <section class="intro" aria-labelledby="page-title">
+        <p class="eyebrow">AI-POWERED SCHEMA ANALYSIS</p>
+        <h1 id="page-title">From messy CSVs to a <span>clearer schema.</span></h1>
+        <p class="subtitle">Upload your source files to explore a proposed relational model, column mappings, and data quality findings.</p>
+      </section>
 
-          <div class="selection" id="selection" hidden>
-            <div class="selection-heading">
-              <span class="section-label">SELECTED FILES</span>
-              <button class="text-button" id="clearFiles" type="button">Clear all</button>
-            </div>
-            <ul class="file-list" id="fileList" aria-live="polite"></ul>
+      <section class="upload-card" aria-label="Upload CSV files">
+        <div class="card-head">
+          <h2>Upload CSV files</h2>
+          <span>Multiple files supported</span>
+        </div>
+
+        <label class="drop-zone" id="dropZone" for="csvFiles">
+          <input id="csvFiles" type="file" accept=".csv,text/csv" multiple>
+          <span class="upload-icon">
+            <svg class="icon"><use href="#icon-upload"></use></svg>
+          </span>
+          <span class="drop-title">Drag and drop your CSV files</span>
+          <span class="drop-tip">or <span class="browse-text">browse files</span> from your device</span>
+        </label>
+
+        <div class="selected-files" id="selection" hidden>
+          <div class="selected-heading">
+            <span class="section-label">SELECTED FILES</span>
+            <button class="text-action" id="clearFiles" type="button">Clear all</button>
           </div>
+          <ul class="file-list" id="fileList" aria-live="polite"></ul>
+        </div>
 
-          <div class="action-row">
-            <p class="selection-count" id="selectionCount">No files selected</p>
-            <button class="profile-button" id="profileFiles" type="button" disabled>Profile CSVs</button>
-          </div>
-          <p class="notice" id="notice" role="status" aria-live="polite"></p>
-        </section>
+        <div class="run">
+          <button class="primary-button" id="profileFiles" type="button" disabled>
+            Analyze files
+            <svg class="icon"><use href="#icon-arrow"></use></svg>
+          </button>
+          <p class="helper" id="selectionCount">Select at least one CSV file to begin</p>
+        </div>
+        <p class="notice" id="notice" role="status" aria-live="polite"></p>
+      </section>
 
-      </main>
-
-      <footer class="footer"><span>APEX SCHEMA NORMALIZATION</span><span>LOCAL WORKSPACE</span></footer>
-    </div>
+      <footer class="footer">SchemaNorm · Review recommendations before implementation</footer>
+    </main>
   </body>
 </html>
