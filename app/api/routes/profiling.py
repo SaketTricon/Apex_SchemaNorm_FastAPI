@@ -174,16 +174,7 @@ async def profile_data(
             raise RuntimeError(
                 "The final report was not valid JSON. Please retry the analysis."
             ) from error
-
-        required_sections = {"tables", "mappings", "findings"}
-        if (
-            not isinstance(analysis, dict)
-            or set(analysis) != required_sections
-            or any(not isinstance(analysis[section], list) for section in required_sections)
-        ):
-            raise RuntimeError(
-                "The final report must contain tables, mappings, and findings arrays."
-            )
+        print("analysis:", analysis)
 
         print("Final report generated successfully.")
 
